@@ -1,0 +1,905 @@
+# Modern E-commerce Admin Panel with Vue.js, Tailwind CSS, and Vite
+
+Here's a comprehensive guide to creating a sleek, functional admin panel for an e-commerce website using Vue 3, Tailwind CSS, and Vite.
+
+## Project Setup
+
+First, let's create a new Vite project with Vue and Tailwind:
+
+```bash
+npm create vite@latest ecommerce-admin --template vue
+cd ecommerce-admin
+npm install -D tailwindcss postcss autoprefixer
+npx tailwindcss init -p
+```
+
+## File Structure
+
+```
+src/
+├── assets/
+├── components/
+│   ├── layout/
+│   │   ├── Sidebar.vue
+│   │   ├── Navbar.vue
+│   │   └── Footer.vue
+│   ├── charts/
+│   ├── tables/
+│   └── widgets/
+├── composables/
+├── pages/
+│   ├── Dashboard.vue
+│   ├── Products/
+│   │   ├── List.vue
+│   │   ├── Add.vue
+│   │   └── Edit.vue
+│   ├── Orders.vue
+│   ├── Customers.vue
+│   ├── Analytics.vue
+│   └── Settings.vue
+├── router/
+│   └── index.js
+├── stores/
+│   └── useAuthStore.js
+├── App.vue
+└── main.js
+```
+
+## Main Configuration
+
+### tailwind.config.js
+
+```js
+module.exports = {
+  content: [
+    "./index.html",
+    "./src/**/*.{vue,js,ts,jsx,tsx}",
+  ],
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#f0f9ff',
+          100: '#e0f2fe',
+          500: '#3b82f6',
+          600: '#2563eb',
+          700: '#1d4ed8',
+        },
+        dark: {
+          800: '#1e293b',
+          900: '#0f172a',
+        }
+      },
+    },
+  },
+  plugins: [],
+}
+```
+
+### vite.config.js
+
+```js
+import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+export default defineConfig({
+  plugins: [vue()],
+})
+```
+
+## Main App Component
+
+### App.vue
+
+```vue
+<script setup>
+import { RouterView } from 'vue-router'
+import Sidebar from '@/components/layout/Sidebar.vue'
+import Navbar from '@/components/layout/Navbar.vue'
+import Footer from '@/components/layout/Footer.vue'
+import { ref } from 'vue'
+
+const sidebarOpen = ref(true)
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value
+}
+</script>
+
+<template>
+  <div class="flex h-screen bg-gray-50 dark:bg-dark-900">
+    <!-- Sidebar -->
+    <Sidebar :isOpen="sidebarOpen" />
+    
+    <div class="flex flex-col flex-1 overflow-hidden">
+      <!-- Navbar -->
+      <Navbar @toggle-sidebar="toggleSidebar" />
+      
+      <!-- Main content -->
+      <main class="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-dark-900 p-4">
+        <RouterView />
+      </main>
+      
+      <!-- Footer -->
+      <Footer />
+    </div>
+  </div>
+</template>
+```
+
+## Layout Components
+
+### Sidebar.vue
+
+```vue
+<script setup>
+defineProps({
+  isOpen: {
+    type: Boolean,
+    default: true
+  }
+})
+
+const navItems = [
+  { name: 'Dashboard', icon: 'grid', path: '/' },
+  { name: 'Products', icon: 'package', path: '/products', children: [
+    { name: 'All Products', path: '/products' },
+    { name: 'Add New', path: '/products/add' }
+  ]},
+  { name: 'Orders', icon: 'shopping-cart', path: '/orders' },
+  { name: 'Customers', icon: 'users', path: '/customers' },
+  { name: 'Analytics', icon: 'bar-chart-2', path: '/analytics' },
+  { name: 'Settings', icon: 'settings', path: '/settings' },
+]
+</script>
+
+<template>
+  <aside 
+    class="w-64 bg-white dark:bg-dark-800 shadow-md fixed h-full transition-all duration-300 z-50"
+    :class="isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'"
+  >
+    <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+      <h1 class="text-xl font-semibold text-gray-800 dark:text-white">E-Commerce Admin</h1>
+    </div>
+    
+    <nav class="p-4">
+      <ul class="space-y-2">
+        <li v-for="item in navItems" :key="item.name">
+          <router-link 
+            :to="item.path"
+            class="flex items-center p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+            active-class="bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400"
+          >
+            <span class="mr-3">
+              <i :data-feather="item.icon" class="w-5 h-5"></i>
+            </span>
+            <span>{{ item.name }}</span>
+          </router-link>
+          
+          <ul v-if="item.children" class="ml-8 mt-1 space-y-1">
+            <li v-for="child in item.children" :key="child.name">
+              <router-link 
+                :to="child.path"
+                class="flex items-center p-2 text-sm text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                active-class="bg-primary-50 dark:bg-primary-800/50 text-primary-600 dark:text-primary-400"
+              >
+                {{ child.name }}
+              </router-link>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </nav>
+  </aside>
+</template>
+```
+
+### Navbar.vue
+
+```vue
+<script setup>
+defineEmits(['toggle-sidebar'])
+
+const user = {
+  name: 'John Doe',
+  email: 'john@example.com',
+  avatar: 'https://randomuser.me/api/portraits/men/1.jpg'
+}
+
+const dropdownOpen = ref(false)
+</script>
+
+<template>
+  <header class="bg-white dark:bg-dark-800 shadow-sm z-40">
+    <div class="flex items-center justify-between h-16 px-4">
+      <div class="flex items-center">
+        <button 
+          @click="$emit('toggle-sidebar')"
+          class="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+        >
+          <i data-feather="menu" class="w-5 h-5"></i>
+        </button>
+        
+        <div class="ml-4 relative">
+          <input 
+            type="text" 
+            placeholder="Search..." 
+            class="pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
+          >
+          <i data-feather="search" class="absolute left-3 top-2.5 text-gray-400"></i>
+        </div>
+      </div>
+      
+      <div class="flex items-center space-x-4">
+        <button class="p-2 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full">
+          <i data-feather="bell" class="w-5 h-5"></i>
+        </button>
+        
+        <div class="relative">
+          <button 
+            @click="dropdownOpen = !dropdownOpen"
+            class="flex items-center space-x-2 focus:outline-none"
+          >
+            <img :src="user.avatar" class="w-8 h-8 rounded-full" alt="User">
+            <span class="hidden md:block text-sm font-medium dark:text-white">{{ user.name }}</span>
+            <i data-feather="chevron-down" class="w-4 h-4 text-gray-400"></i>
+          </button>
+          
+          <div 
+            v-show="dropdownOpen"
+            @click="dropdownOpen = false"
+            class="fixed inset-0 z-10"
+          ></div>
+          
+          <div 
+            v-show="dropdownOpen"
+            class="absolute right-0 mt-2 w-48 bg-white dark:bg-dark-700 rounded-md shadow-lg py-1 z-20"
+          >
+            <router-link 
+              to="/profile" 
+              class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+            >
+              Profile
+            </router-link>
+            <router-link 
+              to="/settings" 
+              class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+            >
+              Settings
+            </router-link>
+            <a 
+              href="#" 
+              class="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
+            >
+              Logout
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+</template>
+```
+
+### Footer.vue
+
+```vue
+<template>
+  <footer class="bg-white dark:bg-dark-800 border-t border-gray-200 dark:border-gray-700 px-4 py-3">
+    <div class="flex items-center justify-between">
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        &copy; 2023 E-Commerce Admin. All rights reserved.
+      </p>
+      <div class="flex space-x-4">
+        <a href="#" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600">Terms</a>
+        <a href="#" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600">Privacy</a>
+        <a href="#" class="text-sm text-gray-500 dark:text-gray-400 hover:text-primary-600">Help</a>
+      </div>
+    </div>
+  </footer>
+</template>
+```
+
+## Router Configuration
+
+### router/index.js
+
+```js
+import { createRouter, createWebHistory } from 'vue-router'
+import Dashboard from '@/pages/Dashboard.vue'
+import ProductsList from '@/pages/Products/List.vue'
+import AddProduct from '@/pages/Products/Add.vue'
+import EditProduct from '@/pages/Products/Edit.vue'
+import Orders from '@/pages/Orders.vue'
+import Customers from '@/pages/Customers.vue'
+import Analytics from '@/pages/Analytics.vue'
+import Settings from '@/pages/Settings.vue'
+
+const routes = [
+  {
+    path: '/',
+    name: 'Dashboard',
+    component: Dashboard
+  },
+  {
+    path: '/products',
+    name: 'Products',
+    component: ProductsList
+  },
+  {
+    path: '/products/add',
+    name: 'AddProduct',
+    component: AddProduct
+  },
+  {
+    path: '/products/edit/:id',
+    name: 'EditProduct',
+    component: EditProduct,
+    props: true
+  },
+  {
+    path: '/orders',
+    name: 'Orders',
+    component: Orders
+  },
+  {
+    path: '/customers',
+    name: 'Customers',
+    component: Customers
+  },
+  {
+    path: '/analytics',
+    name: 'Analytics',
+    component: Analytics
+  },
+  {
+    path: '/settings',
+    name: 'Settings',
+    component: Settings
+  }
+]
+
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes
+})
+
+export default router
+```
+
+## Dashboard Page
+
+### pages/Dashboard.vue
+
+```vue
+<script setup>
+import StatCard from '@/components/widgets/StatCard.vue'
+import RecentOrders from '@/components/tables/RecentOrders.vue'
+import SalesChart from '@/components/charts/SalesChart.vue'
+
+const stats = [
+  { title: 'Total Revenue', value: '$45,231', change: '+12%', icon: 'dollar-sign' },
+  { title: 'Total Orders', value: '1,234', change: '+5%', icon: 'shopping-cart' },
+  { title: 'New Customers', value: '89', change: '+3%', icon: 'users' },
+  { title: 'Conversion Rate', value: '3.2%', change: '-0.5%', icon: 'trending-up' }
+]
+</script>
+
+<template>
+  <div class="space-y-6">
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Dashboard Overview</h2>
+    
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <StatCard 
+        v-for="stat in stats" 
+        :key="stat.title"
+        :title="stat.title"
+        :value="stat.value"
+        :change="stat.change"
+        :icon="stat.icon"
+      />
+    </div>
+    
+    <!-- Charts and Tables -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div class="lg:col-span-2 bg-white dark:bg-dark-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-4">Sales Overview</h3>
+        <SalesChart />
+      </div>
+      
+      <div class="bg-white dark:bg-dark-800 rounded-lg shadow p-6">
+        <h3 class="text-lg font-medium text-gray-800 dark:text-white mb-4">Recent Orders</h3>
+        <RecentOrders />
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+## Products Management
+
+### pages/Products/List.vue
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import ProductTable from '@/components/tables/ProductTable.vue'
+
+const searchQuery = ref('')
+const selectedCategory = ref('all')
+const currentPage = ref(1)
+
+const categories = [
+  { value: 'all', label: 'All Categories' },
+  { value: 'electronics', label: 'Electronics' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'home', label: 'Home & Kitchen' }
+]
+</script>
+
+<template>
+  <div class="space-y-6">
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Products</h2>
+      <router-link 
+        to="/products/add"
+        class="inline-flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+      >
+        <i data-feather="plus" class="mr-2 w-4 h-4"></i>
+        Add Product
+      </router-link>
+    </div>
+    
+    <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+      <div class="p-4 border-b border-gray-200 dark:border-gray-700 flex flex-col md:flex-row md:items-center gap-4">
+        <div class="relative flex-1">
+          <input 
+            v-model="searchQuery"
+            type="text" 
+            placeholder="Search products..." 
+            class="pl-10 pr-4 py-2 w-full border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
+          >
+          <i data-feather="search" class="absolute left-3 top-2.5 text-gray-400"></i>
+        </div>
+        
+        <select 
+          v-model="selectedCategory"
+          class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
+        >
+          <option v-for="category in categories" :key="category.value" :value="category.value">
+            {{ category.label }}
+          </option>
+        </select>
+      </div>
+      
+      <ProductTable />
+      
+      <div class="p-4 border-t border-gray-200 dark:border-gray-700 flex items-center justify-between">
+        <div class="text-sm text-gray-500 dark:text-gray-400">
+          Showing <span class="font-medium">1</span> to <span class="font-medium">10</span> of <span class="font-medium">124</span> results
+        </div>
+        
+        <div class="flex space-x-2">
+          <button 
+            @click="currentPage > 1 ? currentPage-- : null"
+            :disabled="currentPage === 1"
+            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg disabled:opacity-50"
+          >
+            Previous
+          </button>
+          <button 
+            @click="currentPage++"
+            class="px-3 py-1 border border-gray-300 dark:border-gray-600 rounded-lg"
+          >
+            Next
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+```
+
+### pages/Products/Add.vue
+
+```vue
+<script setup>
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+
+const product = ref({
+  name: '',
+  description: '',
+  price: '',
+  category: '',
+  stock: '',
+  images: []
+})
+
+const categories = [
+  { value: 'electronics', label: 'Electronics' },
+  { value: 'clothing', label: 'Clothing' },
+  { value: 'home', label: 'Home & Kitchen' }
+]
+
+const handleImageUpload = (event) => {
+  const files = event.target.files
+  for (let i = 0; i < files.length; i++) {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      product.value.images.push(e.target.result)
+    }
+    reader.readAsDataURL(files[i])
+  }
+}
+
+const removeImage = (index) => {
+  product.value.images.splice(index, 1)
+}
+
+const submitForm = () => {
+  // Submit logic here
+  console.log('Product added:', product.value)
+  router.push('/products')
+}
+</script>
+
+<template>
+  <div class="space-y-6">
+    <div class="flex items-center justify-between">
+      <h2 class="text-2xl font-bold text-gray-800 dark:text-white">Add New Product</h2>
+      <router-link 
+        to="/products"
+        class="inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+      >
+        Back to Products
+      </router-link>
+    </div>
+    
+    <div class="bg-white dark:bg-dark-800 rounded-lg shadow overflow-hidden">
+      <form @submit.prevent="submitForm" class="p-6 space-y-6">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product Name</label>
+            <input 
+              v-model="product.name"
+              type="text" 
+              required
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
+            >
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Category</label>
+            <select 
+              v-model="product.category"
+              required
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
+            >
+              <option value="" disabled>Select a category</option>
+              <option v-for="category in categories" :key="category.value" :value="category.value">
+                {{ category.label }}
+              </option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Price</label>
+            <div class="relative">
+              <span class="absolute left-3 top-2.5 text-gray-500">$</span>
+              <input 
+                v-model="product.price"
+                type="number" 
+                min="0" 
+                step="0.01" 
+                required
+                class="w-full pl-8 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
+              >
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Stock Quantity</label>
+            <input 
+              v-model="product.stock"
+              type="number" 
+              min="0" 
+              required
+              class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
+            >
+          </div>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Description</label>
+          <textarea 
+            v-model="product.description"
+            rows="4"
+            class="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-primary-500 focus:border-primary-500 dark:bg-dark-700 dark:text-white"
+          ></textarea>
+        </div>
+        
+        <div>
+          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Product Images</label>
+          <div class="mt-1 flex items-center">
+            <label 
+              for="file-upload"
+              class="cursor-pointer inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-dark-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors"
+            >
+              <i data-feather="upload" class="mr-2 w-4 h-4"></i>
+              Upload Images
+            </label>
+            <input id="file-upload" type="file" multiple class="sr-only" @change="handleImageUpload">
+          </div>
+          
+          <div v-if="product.images.length > 0" class="mt-4 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            <div v-for="(image, index) in product.images" :key="index" class="relative group">
+              <img :src="image" class="w-full h-32 object-cover rounded-lg">
+              <button 
+                @click="removeImage(index)"
+                class="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <i data-feather="x" class="w-3 h-3"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+        
+        <div class="flex justify-end space-x-3 pt-4">
+          <router-link 
+            to="/products"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          >
+            Cancel
+          </router-link>
+          <button 
+            type="submit"
+            class="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Save Product
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</template>
+```
+
+## Additional Components
+
+### components/widgets/StatCard.vue
+
+```vue
+<script setup>
+defineProps({
+  title: String,
+  value: String,
+  change: String,
+  icon: String
+})
+
+const isPositive = computed(() => {
+  return props.change.startsWith('+')
+})
+</script>
+
+<template>
+  <div class="bg-white dark:bg-dark-800 rounded-lg shadow p-6">
+    <div class="flex items-center justify-between">
+      <div>
+        <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ title }}</p>
+        <p class="mt-1 text-2xl font-semibold text-gray-900 dark:text-white">{{ value }}</p>
+      </div>
+      <div 
+        class="p-3 rounded-lg"
+        :class="isPositive ? 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-400'"
+      >
+        <i :data-feather="icon" class="w-6 h-6"></i>
+      </div>
+    </div>
+    <p 
+      class="mt-2 text-sm"
+      :class="isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+    >
+      {{ change }} from last month
+    </p>
+  </div>
+</template>
+```
+
+### components/tables/ProductTable.vue
+
+```vue
+<script setup>
+const products = [
+  { id: 1, name: 'Wireless Headphones', category: 'Electronics', price: 99.99, stock: 45, status: 'active' },
+  { id: 2, name: 'Smart Watch', category: 'Electronics', price: 199.99, stock: 12, status: 'active' },
+  { id: 3, name: 'Cotton T-Shirt', category: 'Clothing', price: 19.99, stock: 78, status: 'active' },
+  { id: 4, name: 'Blender', category: 'Home', price: 49.99, stock: 0, status: 'out-of-stock' },
+  { id: 5, name: 'Running Shoes', category: 'Clothing', price: 89.99, stock: 23, status: 'active' }
+]
+</script>
+
+<template>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+      <thead class="bg-gray-50 dark:bg-dark-700">
+        <tr>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Product
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Category
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Price
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Stock
+          </th>
+          <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Status
+          </th>
+          <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            Actions
+          </th>
+        </tr>
+      </thead>
+      <tbody class="bg-white dark:bg-dark-800 divide-y divide-gray-200 dark:divide-gray-700">
+        <tr v-for="product in products" :key="product.id">
+          <td class="px-6 py-4 whitespace-nowrap">
+            <div class="flex items-center">
+              <div class="flex-shrink-0 h-10 w-10 bg-gray-200 rounded-md"></div>
+              <div class="ml-4">
+                <div class="text-sm font-medium text-gray-900 dark:text-white">{{ product.name }}</div>
+              </div>
+            </div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+            {{ product.category }}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+            ${{ product.price.toFixed(2) }}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+            {{ product.stock }}
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+            <span 
+              class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full"
+              :class="product.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'"
+            >
+              {{ product.status === 'active' ? 'Active' : 'Out of Stock' }}
+            </span>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <router-link 
+              :to="`/products/edit/${product.id}`"
+              class="text-primary-600 hover:text-primary-900 dark:text-primary-400 dark:hover:text-primary-300 mr-3"
+            >
+              Edit
+            </router-link>
+            <button class="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300">
+              Delete
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>
+```
+
+## Final Touches
+
+1. Install Feather Icons for the icon system:
+
+```bash
+npm install feather-icons
+```
+
+2. Create a `main.js` file to initialize the app:
+
+```js
+import { createApp } from 'vue'
+import App from './App.vue'
+import router from './router'
+import feather from 'feather-icons'
+
+const app = createApp(App)
+
+app.use(router)
+
+app.mount('#app')
+
+// Update icons after navigation
+router.afterEach(() => {
+  feather.replace()
+})
+```
+
+3. Add global styles in your `main.css`:
+
+```css
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #1e293b;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #64748b;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+```
+
+## Running the Application
+
+```bash
+npm run dev
+```
+
+This will start the development server, and you can access your admin panel at `http://localhost:5173`.
+
+## Features Implemented
+
+1. **Responsive Layout**:
+   - Collapsible sidebar
+   - Mobile-friendly navigation
+   - Dark mode support
+
+2. **Dashboard**:
+   - Stats cards with trends
+   - Sales chart
+   - Recent orders table
+
+3. **Product Management**:
+   - Product listing with search and filters
+   - Add/edit product forms
+   - Image upload functionality
+
+4. **UI Components**:
+   - Custom tables
+   - Form controls
+   - Modals and alerts
+   - Breadcrumbs and navigation
+
+5. **Additional Pages**:
+   - Orders management
+   - Customers list
+   - Analytics
+   - Settings
+
+This admin panel provides a solid foundation that you can extend with additional features like:
+- User authentication
+- Order processing workflows
+- Inventory management
+- Customer segmentation
+- Advanced analytics
+- API integration with your e-commerce backend
